@@ -45,7 +45,7 @@ namespace MyNoSqlServer.DataReader
 
             _tcpClient.Logs.AddLogInfo((c, msg) =>
             {
-                _logger.LogInformation($"[{name}][MuNoSql] {msg}");
+                _logger.LogInformation($"[{name}][MyNoSql] {msg}");
             });
         }
 
