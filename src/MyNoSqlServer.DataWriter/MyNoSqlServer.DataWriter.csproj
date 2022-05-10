@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Version>1.0.1</Version>
+        <LangVersion>9</LangVersion>
+        <TargetFrameworks>net5.0;net6.0;netstandard2.1</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Flurl.Http" Version="3.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference PrivateAssets="All" Include="..\MyNoSqlServer.Abstractions\MyNoSqlServer.Abstractions.csproj" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <TargetsForTfmSpecificBuildOutput>
+        $(TargetsForTfmSpecificBuildOutput);PackReferencedProjectOutputs
+      </TargetsForTfmSpecificBuildOutput>
+    </PropertyGroup>
+
+    <Target Name="PackReferencedProjectOutputs" DependsOnTargets="BuildOnlySettings;ResolveReferences">
+      <ItemGroup>
+        <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths-&gt;WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+      </ItemGroup>
+    </Target> 
+
+</Project>

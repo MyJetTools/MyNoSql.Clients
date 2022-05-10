@@ -1,0 +1,36 @@
+name: Release Client Nugets (Reader and Writer)
+
+on:
+  push:
+    tags: "*"
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.*
+        include-prerelease: true
+
+    - name: Build
+      run: dotnet build --configuration Release
+    - name: Test
+      run: dotnet test --configuration Release      
+      
+    - name: Create the package - Reader
+      run: dotnet pack --configuration Release src/MyNoSqlServer.DataReader/MyNoSqlServer.DataReader.csproj /p:Version=${GITHUB_REF#refs/tags/}
+
+    - name: Create the package - Writer
+      run: dotnet pack --configuration Release src/MyNoSqlServer.DataWriter/MyNoSqlServer.DataWriter.csproj /p:Version=${GITHUB_REF#refs/tags/}
+
+    - name: Publish the package to GPR - Reader
+      run: dotnet nuget push src/MyNoSqlServer.DataReader/bin/Release/*.nupkg -s "https://api.nuget.org/v3/index.json" -k ${{ secrets.NUGET_TOCKEN }}
+
+    - name: Publish the package to GPR - Writer
+      run: dotnet nuget push src/MyNoSqlServer.DataWriter/bin/Release/*.nupkg -s "https://api.nuget.org/v3/index.json" -k ${{ secrets.NUGET_TOCKEN }}
+

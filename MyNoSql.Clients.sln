@@ -1,0 +1,34 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyNoSqlServer.Abstractions", "src\MyNoSqlServer.Abstractions\MyNoSqlServer.Abstractions.csproj", "{528E1295-9903-45C8-A610-4C2276804368}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyNoSqlServer.TcpContracts", "src\MyNoSqlServer.TcpContracts\MyNoSqlServer.TcpContracts.csproj", "{B6C41F56-06A1-4FA2-A4B5-9680E20DC64E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyNoSqlServer.DataReader", "src\MyNoSqlServer.DataReader\MyNoSqlServer.DataReader.csproj", "{BEB38202-1832-428F-A0E4-D85FDB02188E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyNoSqlServer.DataWriter", "src\MyNoSqlServer.DataWriter\MyNoSqlServer.DataWriter.csproj", "{7DBF2C29-3284-4953-AE7B-ADFFC70E824C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{528E1295-9903-45C8-A610-4C2276804368}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{528E1295-9903-45C8-A610-4C2276804368}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{528E1295-9903-45C8-A610-4C2276804368}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{528E1295-9903-45C8-A610-4C2276804368}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6C41F56-06A1-4FA2-A4B5-9680E20DC64E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6C41F56-06A1-4FA2-A4B5-9680E20DC64E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6C41F56-06A1-4FA2-A4B5-9680E20DC64E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6C41F56-06A1-4FA2-A4B5-9680E20DC64E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEB38202-1832-428F-A0E4-D85FDB02188E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEB38202-1832-428F-A0E4-D85FDB02188E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEB38202-1832-428F-A0E4-D85FDB02188E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEB38202-1832-428F-A0E4-D85FDB02188E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DBF2C29-3284-4953-AE7B-ADFFC70E824C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DBF2C29-3284-4953-AE7B-ADFFC70E824C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DBF2C29-3284-4953-AE7B-ADFFC70E824C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DBF2C29-3284-4953-AE7B-ADFFC70E824C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
