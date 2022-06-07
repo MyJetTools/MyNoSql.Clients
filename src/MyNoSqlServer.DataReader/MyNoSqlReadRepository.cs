@@ -55,12 +55,14 @@ namespace MyNoSqlServer.DataReader
                         if (string.IsNullOrEmpty(item.PartitionKey))
                         {
                             _logger?.LogError($"[NoSql][Init] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            Console.WriteLine($"[NoSql][Init] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
                             continue;
                         }
                         
                         if (string.IsNullOrEmpty(item.RowKey))
                         {
                             _logger?.LogError($"[NoSql][Init] Cannot store entity with null or empty row key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            Console.WriteLine($"[NoSql][Init] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
                             continue;
                         }
                         
@@ -89,6 +91,7 @@ namespace MyNoSqlServer.DataReader
             catch (Exception ex)
             {
                 _logger?.LogError(ex, $"[NoSql] Cannot execute Init action for table: {_tableName}, count items: {items.Count}");
+                Console.WriteLine($"[NoSql] Cannot execute Init action for table: {_tableName}, count items: {items.Count}");
                 throw;
             }
 
@@ -119,12 +122,14 @@ namespace MyNoSqlServer.DataReader
                         if (string.IsNullOrEmpty(item.PartitionKey))
                         {
                             _logger?.LogError($"[NoSql][InitPartition] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            Console.WriteLine($"[NoSql][InitPartition] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
                             continue;
                         }
                         
                         if (string.IsNullOrEmpty(item.RowKey))
                         {
                             _logger?.LogError($"[NoSql][InitPartition] Cannot store entity with null or empty row key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            Console.WriteLine($"[NoSql][InitPartition] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
                             continue;
                         }
                         
@@ -162,6 +167,7 @@ namespace MyNoSqlServer.DataReader
             catch (Exception ex)
             {
                 _logger?.LogError(ex, $"[NoSql] Cannot execute Init Partition '{partitionKey}' action for table: {_tableName}, count items: {items.Count}");
+                Console.WriteLine($"[NoSql] Cannot execute Init Partition '{partitionKey}' action for table: {_tableName}, count items: {items.Count}");
                 throw;
             }
 
