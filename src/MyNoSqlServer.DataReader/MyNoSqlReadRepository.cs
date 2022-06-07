@@ -2,13 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using MyNoSqlServer.Abstractions;
+using Newtonsoft.Json;
 
 namespace MyNoSqlServer.DataReader
 {
 
     public class MyNoSqlReadRepository<T> : IMyNoSqlServerDataReader<T> where T : IMyNoSqlDbEntity
     {
+        private readonly string _tableName;
+        private readonly ILogger<MyNoSqlReadRepository<T>> _logger;
 
         private SortedDictionary<string, DataReaderPartition<T>> _cache =
             new SortedDictionary<string, DataReaderPartition<T>>();
@@ -17,164 +21,246 @@ namespace MyNoSqlServer.DataReader
 
         public MyNoSqlReadRepository(IMyNoSqlSubscriber subscriber, string tableName)
         {
+            _tableName = tableName;
             tableName = tableName.ToLower();
             subscriber.Subscribe<T>(tableName, Init, InitPartition, Update, Delete);
+        }
+        
+        public MyNoSqlReadRepository(IMyNoSqlSubscriber subscriber, string tableName, ILogger<MyNoSqlReadRepository<T>> logger)
+            : this(subscriber, tableName)
+        {
+            _logger = logger;
         }
 
 
         private void Init(IReadOnlyList<T> items)
         {
-            IReadOnlyList<T> updated;
-            IReadOnlyList<T> deleted;
-
-            _lock.EnterWriteLock();
+            _logger?.LogInformation($"[NoSql] Start Init action for table: {_tableName}, count items: {items.Count}");
             try
             {
-                var oldOne = _cache;
-                _cache = new SortedDictionary<string, DataReaderPartition<T>>();
 
-                foreach (var item in items)
+
+
+                IReadOnlyList<T> updated;
+                IReadOnlyList<T> deleted;
+
+                _lock.EnterWriteLock();
+                try
                 {
-                    if (!_cache.ContainsKey(item.PartitionKey))
-                        _cache.Add(item.PartitionKey, new DataReaderPartition<T>());
+                    var oldOne = _cache;
+                    _cache = new SortedDictionary<string, DataReaderPartition<T>>();
 
-                    var partition = _cache[item.PartitionKey];
+                    foreach (var item in items)
+                    {
+                        if (string.IsNullOrEmpty(item.PartitionKey))
+                        {
+                            _logger?.LogError($"[NoSql][Init] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            continue;
+                        }
+                        
+                        if (string.IsNullOrEmpty(item.RowKey))
+                        {
+                            _logger?.LogError($"[NoSql][Init] Cannot store entity with null or empty row key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            continue;
+                        }
+                        
+                        if (!_cache.ContainsKey(item.PartitionKey))
+                            _cache.Add(item.PartitionKey, new DataReaderPartition<T>());
 
-                    partition.Update(item);
+                        var partition = _cache[item.PartitionKey];
+
+                        partition.Update(item);
+                    }
+
+                    (updated, deleted) = oldOne.GetTotalDifference(_cache);
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
                 }
 
-                (updated, deleted) = oldOne.GetTotalDifference(_cache);
+
+                if (updated != null)
+                    NotifyChanged(updated);
+
+                if (deleted != null)
+                    NotifyDeleted(deleted);
             }
-            finally
+            catch (Exception ex)
             {
-                _lock.ExitWriteLock();
+                _logger?.LogError(ex, $"[NoSql] Cannot execute Init action for table: {_tableName}, count items: {items.Count}");
+                throw;
             }
 
-            
-            if (updated != null)
-                NotifyChanged(updated);
-
-            if (deleted != null)
-                NotifyDeleted(deleted);
+            _logger?.LogInformation($"[NoSql] Finish Init action for table: {_tableName}, count items: {items.Count}");
         }
 
         private void InitPartition(string partitionKey, IReadOnlyList<T> items)
         {
-            
-            IReadOnlyList<T> updated;
-            IReadOnlyList<T> deleted;
-
-            _lock.EnterWriteLock();
+            _logger?.LogInformation($"[NoSql] Start Init Partition '{partitionKey}' action for table: {_tableName}, count items: {items.Count}");
             try
             {
 
-                var oldPartition = _cache.ContainsKey(partitionKey)
-                    ? _cache[partitionKey]
-                    : null;
+                IReadOnlyList<T> updated;
+                IReadOnlyList<T> deleted;
 
-                _cache[partitionKey] = new DataReaderPartition<T>();
-
-                foreach (var item in items)
+                _lock.EnterWriteLock();
+                try
                 {
-                    if (!_cache.ContainsKey(item.PartitionKey))
-                        _cache.Add(item.PartitionKey, new DataReaderPartition<T>());
 
-                    var partition = _cache[item.PartitionKey];
+                    var oldPartition = _cache.ContainsKey(partitionKey)
+                        ? _cache[partitionKey]
+                        : null;
 
-                    partition.Update(item);
+                    _cache[partitionKey] = new DataReaderPartition<T>();
+
+                    foreach (var item in items)
+                    {
+                        if (string.IsNullOrEmpty(item.PartitionKey))
+                        {
+                            _logger?.LogError($"[NoSql][InitPartition] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            continue;
+                        }
+                        
+                        if (string.IsNullOrEmpty(item.RowKey))
+                        {
+                            _logger?.LogError($"[NoSql][InitPartition] Cannot store entity with null or empty row key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            continue;
+                        }
+                        
+                        if (!_cache.ContainsKey(item.PartitionKey))
+                            _cache.Add(item.PartitionKey, new DataReaderPartition<T>());
+
+                        var partition = _cache[item.PartitionKey];
+
+                        partition.Update(item);
+                    }
+
+                    if (oldPartition == null)
+                    {
+                        NotifyChanged(_cache[partitionKey].GetRows().ToList());
+                        return;
+                    }
+
+                    (updated, deleted) = oldPartition.FindDifference(_cache[partitionKey]);
+
+
+
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
                 }
 
-                if (oldPartition == null)
-                {
-                    NotifyChanged(_cache[partitionKey].GetRows().ToList());
-                    return;
-                }
 
-                (updated, deleted) = oldPartition.FindDifference(_cache[partitionKey]);
+                if (updated != null)
+                    NotifyChanged(updated);
 
-
-
+                if (deleted != null)
+                    NotifyDeleted(deleted);
             }
-            finally
+            catch (Exception ex)
             {
-                _lock.ExitWriteLock();
+                _logger?.LogError(ex, $"[NoSql] Cannot execute Init Partition '{partitionKey}' action for table: {_tableName}, count items: {items.Count}");
+                throw;
             }
-            
-            
-            if (updated != null)
-                NotifyChanged(updated);
 
-            if (deleted != null)
-                NotifyDeleted(deleted);
-
-
+            _logger?.LogInformation($"[NoSql] Finish Init Partition '{partitionKey}' action for table: {_tableName}, count items: {items.Count}");
         }
 
         private void Update(IReadOnlyList<T> items)
         {
-            _lock.EnterWriteLock();
             try
             {
-                foreach (var item in items)
+                _lock.EnterWriteLock();
+                try
                 {
-                    if (!_cache.ContainsKey(item.PartitionKey))
-                        _cache.Add(item.PartitionKey, new DataReaderPartition<T>());
+                    foreach (var item in items)
+                    {
+                        if (string.IsNullOrEmpty(item.PartitionKey))
+                        {
+                            _logger?.LogError($"[NoSql][Update] Cannot store entity with null or empty partition key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            continue;
+                        }
+                        
+                        if (string.IsNullOrEmpty(item.RowKey))
+                        {
+                            _logger?.LogError($"[NoSql][Update] Cannot store entity with null or empty row key. Table: {_tableName}: {JsonConvert.SerializeObject(item)}");
+                            continue;
+                        }
+                        
+                        if (!_cache.ContainsKey(item.PartitionKey))
+                            _cache.Add(item.PartitionKey, new DataReaderPartition<T>());
 
-                    var partition = _cache[item.PartitionKey];
+                        var partition = _cache[item.PartitionKey];
 
-                    partition.Update(item);
+                        partition.Update(item);
+                    }
+
+
+
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
                 }
 
-         
-
+                NotifyChanged(items);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                _logger?.LogError(ex, $"[NoSql] Cannot execute Update action for table: {_tableName}, count items: {items.Count}");
+                throw;
             }
-            finally
-            {
-                _lock.ExitWriteLock();
-            }
-            
-            NotifyChanged(items);
         }
 
 
         private void Delete(IEnumerable<(string partitionKey, string rowKey)> dataToDelete)
         {
-            List<T> deleted = null;
-            
-            _lock.EnterWriteLock();
             try
             {
-     
-                foreach (var (partitionKey, rowKey) in dataToDelete)
+                List<T> deleted = null;
+
+                _lock.EnterWriteLock();
+                try
                 {
-                    if (!_cache.ContainsKey(partitionKey))
-                        continue;
 
-                    var partition = _cache[partitionKey];
-
-
-                    if (partition.TryDelete(rowKey, out var deletedItem))
+                    foreach (var (partitionKey, rowKey) in dataToDelete)
                     {
-                        deleted ??= new List<T>();
-                        deleted.Add(deletedItem);
+                        if (!_cache.ContainsKey(partitionKey))
+                            continue;
+
+                        var partition = _cache[partitionKey];
+
+
+                        if (partition.TryDelete(rowKey, out var deletedItem))
+                        {
+                            deleted ??= new List<T>();
+                            deleted.Add(deletedItem);
+                        }
+
+                        if (partition.Count == 0)
+                            _cache.Remove(partitionKey);
                     }
 
-                    if (partition.Count == 0)
-                        _cache.Remove(partitionKey);
+
+                }
+                finally
+                {
+                    _lock.ExitWriteLock();
                 }
 
-
+                NotifyDeleted(deleted);
             }
-            finally
+            catch (Exception ex)
             {
-                _lock.ExitWriteLock();
+                _logger?.LogError(ex, $"[NoSql] Cannot execute Delete action for table: {_tableName}");
+                throw;
             }
-            
-            NotifyDeleted(deleted);
         }
 
 
