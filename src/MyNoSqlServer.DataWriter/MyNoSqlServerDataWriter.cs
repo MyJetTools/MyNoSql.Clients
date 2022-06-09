@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Flurl;
 using Flurl.Http;
@@ -44,6 +45,8 @@ namespace MyNoSqlServer.DataWriter
 
         public async ValueTask InsertAsync(T entity)
         {
+            entity.Validate();
+
             await MakeCall(async () =>
             {
                 await GetUrl()
@@ -56,6 +59,8 @@ namespace MyNoSqlServer.DataWriter
 
         public async ValueTask InsertOrReplaceAsync(T entity)
         {
+            entity.Validate();
+
             await MakeCall(async () =>
             {
                 await GetUrl()
@@ -81,9 +86,15 @@ namespace MyNoSqlServer.DataWriter
             }, "CleanAndKeepLastRecords");
         }
 
-        public async ValueTask BulkInsertOrReplaceAsync(IEnumerable<T> entities,
+        public async ValueTask BulkInsertOrReplaceAsync(IReadOnlyList<T> entities,
             DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
         {
+            if(!entities.Any())
+                return;
+
+            foreach (var entity in entities) 
+                entity.Validate();
+
             await MakeCall(async () =>
             {
                 await GetUrl()
@@ -95,9 +106,12 @@ namespace MyNoSqlServer.DataWriter
         }
 
 
-        public async ValueTask CleanAndBulkInsertAsync(IEnumerable<T> entities,
+        public async ValueTask CleanAndBulkInsertAsync(IReadOnlyList<T> entities,
             DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
         {
+            foreach (var entity in entities) 
+                entity.Validate();
+            
             await MakeCall(async () =>
             {
                 await GetUrl()
@@ -108,9 +122,12 @@ namespace MyNoSqlServer.DataWriter
             }, "CleanAndBulkInsert");
         }
 
-        public async ValueTask CleanAndBulkInsertAsync(string partitionKey, IEnumerable<T> entities,
+        public async ValueTask CleanAndBulkInsertAsync(string partitionKey, IReadOnlyList<T> entities,
             DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
         {
+            foreach (var entity in entities) 
+                entity.Validate();
+            
             await MakeCall(async () =>
             {
                 await GetUrl()
@@ -172,13 +189,13 @@ namespace MyNoSqlServer.DataWriter
             return ExecuteUpdateProcessAsync(partitionKey, rowKey, "Merge", updateCallback, syncPeriod);
         }
 
-        public async ValueTask<IEnumerable<T>> GetAsync()
+        public async ValueTask<List<T>> GetAsync()
         {
-            return await MakeCall<IEnumerable<T>>(async () => await GetUrl()
+            return await MakeCall<List<T>>(async () => await GetUrl()
                 .AppendPathSegments(RowController)
                 .WithTableNameAsQueryParam(TableName)
                 .GetAsync()
-                .ReceiveJson<T[]>(), RowController);
+                .ReceiveJson<List<T>>(), RowController);
         }
 
 #if NET5_0 || NETSTANDARD2_1 || NETCOREAPP3_1
@@ -218,14 +235,14 @@ namespace MyNoSqlServer.DataWriter
         }
 #endif
 
-        public async ValueTask<IEnumerable<T>> GetAsync(string partitionKey)
+        public async ValueTask<List<T>> GetAsync(string partitionKey)
         {
-            return await MakeCall<IEnumerable<T>>(async () => await GetUrl()
+            return await MakeCall<List<T>>(async () => await GetUrl()
                 .AppendPathSegments(RowController)
                 .WithTableNameAsQueryParam(TableName)
                 .WithPartitionKeyAsQueryParam(partitionKey)
                 .GetAsync()
-                .ReceiveJson<T[]>(), RowController);
+                .ReceiveJson<List<T>>(), RowController);
         }
 
         public async ValueTask<T> GetAsync(string partitionKey, string rowKey)
@@ -249,12 +266,12 @@ namespace MyNoSqlServer.DataWriter
             }, RowController);
         }
 
-        private static readonly T[] EmptyResponse = Array.Empty<T>();
+        private static readonly List<T> EmptyResponse = new List<T>();
 
-        public async ValueTask<IReadOnlyList<T>> GetMultipleRowKeysAsync(string partitionKey,
-            IEnumerable<string> rowKeys)
+        public async ValueTask<List<T>> GetMultipleRowKeysAsync(string partitionKey,
+            IReadOnlyList<string> rowKeys)
         {
-            return await MakeCall<IReadOnlyList<T>>(async () =>
+            return await MakeCall<List<T>>(async () =>
             {
                 var response = await GetUrl()
                     .AppendPathSegments("Rows", "SinglePartitionMultipleRows")
@@ -294,7 +311,7 @@ namespace MyNoSqlServer.DataWriter
             }, RowController);
         }
 
-        public async ValueTask<IEnumerable<T>> QueryAsync(string query)
+        public async ValueTask<List<T>> QueryAsync(string query)
         {
             return await MakeCall(async () =>
             {
@@ -308,7 +325,7 @@ namespace MyNoSqlServer.DataWriter
             }, "Query");
         }
 
-      public async ValueTask<IEnumerable<T>> GetHighestRowAndBelow(string partitionKey, string rowKeyFrom, int amount)
+      public async ValueTask<List<T>> GetHighestRowAndBelow(string partitionKey, string rowKeyFrom, int amount)
         {
             return await MakeCall(async () =>
             {

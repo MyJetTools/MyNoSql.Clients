@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Flurl;
 using Flurl.Http;
 using MyNoSqlServer.Abstractions;
+using MyNoSqlServer.DataWriter.Exceptions;
+using Newtonsoft.Json;
 
 namespace MyNoSqlServer.DataWriter
 {
@@ -81,6 +83,25 @@ namespace MyNoSqlServer.DataWriter
                     var messageUnknown = await httpResponseMessage.GetStringAsync();
                     throw new Exception(
                         $"Unknown HTTP result Code{httpResponseMessage.StatusCode}. Message: {messageUnknown}");
+            }
+        }
+
+        public static void Validate<T>(this T entity) where T : IMyNoSqlDbEntity
+        {
+            if (string.IsNullOrWhiteSpace(entity.PartitionKey))
+            {
+                var message =
+                    $"Entity of type {entity.GetType()} has empty partition key, Entity: {JsonConvert.SerializeObject(entity)}";
+                Console.WriteLine(message);
+                throw new MyNoSqlArgumentsException(message);
+            }
+            
+            if (string.IsNullOrWhiteSpace(entity.RowKey))
+            {
+                var message =
+                    $"Entity of type {entity.GetType()} has empty row key, Entity: {JsonConvert.SerializeObject(entity)}";
+                Console.WriteLine(message);
+                throw new MyNoSqlArgumentsException(message);
             }
         }
 
