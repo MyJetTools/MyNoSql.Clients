@@ -88,10 +88,18 @@ namespace MyNoSqlServer.DataWriter
 
         public static void Validate<T>(this T entity) where T : IMyNoSqlDbEntity
         {
+            if (entity == null)
+            {
+                var message =
+                    $"Entity of type {typeof(T).Name} can not be null";
+                Console.WriteLine(message);
+                throw new MyNoSqlArgumentsException(message);
+            }
+            
             if (string.IsNullOrWhiteSpace(entity.PartitionKey))
             {
                 var message =
-                    $"Entity of type {entity.GetType()} has empty partition key, Entity: {JsonConvert.SerializeObject(entity)}";
+                    $"Entity of type {typeof(T).Name} has empty partition key, Entity: {JsonConvert.SerializeObject(entity)}";
                 Console.WriteLine(message);
                 throw new MyNoSqlArgumentsException(message);
             }
@@ -99,7 +107,7 @@ namespace MyNoSqlServer.DataWriter
             if (string.IsNullOrWhiteSpace(entity.RowKey))
             {
                 var message =
-                    $"Entity of type {entity.GetType()} has empty row key, Entity: {JsonConvert.SerializeObject(entity)}";
+                    $"Entity of type {typeof(T).Name} has empty row key, Entity: {JsonConvert.SerializeObject(entity)}";
                 Console.WriteLine(message);
                 throw new MyNoSqlArgumentsException(message);
             }
