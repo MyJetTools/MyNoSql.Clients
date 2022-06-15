@@ -38,9 +38,6 @@ namespace MyNoSqlServer.DataReader
             _logger?.LogInformation($"[NoSql] Start Init action for table: {_tableName}, count items: {items.Count}");
             try
             {
-
-
-
                 IReadOnlyList<T> updated;
                 IReadOnlyList<T> deleted;
 

@@ -9,7 +9,6 @@ namespace MyNoSqlServer.TcpContracts
 {
     public class SerializerDeserializer
     {
-        
         private static readonly Dictionary<CommandType, Func<IMyNoSqlTcpContract>> CommandToContractMapper
             = new Dictionary<CommandType, Func<IMyNoSqlTcpContract>>
             {
@@ -38,7 +37,12 @@ namespace MyNoSqlServer.TcpContracts
         {
             var command = (CommandType)await dataReader.ReadByteAsync(ct);
 
-            var instance = CommandToContractMapper[command]();
+            if (!CommandToContractMapper.TryGetValue(command, out var mapper))
+            {
+                Console.WriteLine($"[NOSQL ERROR] Cannot handle command: {command}");
+                throw new Exception($"Cannot Deserialize unknown command: {command}");
+            }
+            var instance = mapper();
             
             await instance.DeserializeAsync(dataReader, ct);
 
@@ -52,7 +56,10 @@ namespace MyNoSqlServer.TcpContracts
         {
             var mem = new MemoryStream();
 
-            var command = TypeToCommandType[data.GetType()];
+            if (!TypeToCommandType.TryGetValue(data.GetType(), out var mapper))
+                throw new Exception($"Cannot Serialize unknown command type: {data.GetType().Name}");
+            
+            var command = mapper;
             mem.WriteByte((byte)command);
             data.Serialize(mem);
             return mem.ToArray();
