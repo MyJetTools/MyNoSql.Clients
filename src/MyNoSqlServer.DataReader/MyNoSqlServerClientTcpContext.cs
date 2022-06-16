@@ -53,7 +53,7 @@ namespace MyNoSqlServer.DataReader
 
                 SendDataToSocket(subscribePacket);
 
-                Console.WriteLine("Subscribed to MyNoSql table: " + tableToSubscribe);
+                Console.WriteLine($"[NoSql][{_appName}]Subscribed to MyNoSql table: {tableToSubscribe}");
             }
 
             return new ValueTask();
@@ -74,13 +74,13 @@ namespace MyNoSqlServer.DataReader
                 {
                     case InitTableContract initTableContract:
                         table = initTableContract.TableName;
-                        Console.WriteLine($"[NoSql] receive Init packet. table: {initTableContract.TableName}  size: {initTableContract.Data.Length}");
+                        Console.WriteLine($"[NoSql][{_appName}] receive Init packet. table: {initTableContract.TableName}  size: {initTableContract.Data.Length}");
                         _subscriber.HandleInitTableEvent(initTableContract.TableName, initTableContract.Data);
                         break;
 
                     case InitPartitionContract initPartitionContract:
                         table = initPartitionContract.TableName;
-                        Console.WriteLine($"[NoSql] receive InitPartition packet. table: {initPartitionContract.TableName}  size: {initPartitionContract.Data.Length}");
+                        Console.WriteLine($"[NoSql][{_appName}] receive InitPartition packet. table: {initPartitionContract.TableName}  size: {initPartitionContract.Data.Length}");
                         _subscriber.HandleInitPartitionEvent(initPartitionContract.TableName,
                             initPartitionContract.PartitionKey,
                             initPartitionContract.Data);
@@ -100,8 +100,8 @@ namespace MyNoSqlServer.DataReader
             }
             catch (Exception e)
             {
-                Console.WriteLine($"There is a problem with Packet: {data.GetType().Name}; Table: {table}\n{e}");
-                throw new Exception($"There is a problem with Packet: {data.GetType().Name}; Table: {table}", e);
+                Console.WriteLine($"[NoSql][{_appName}] There is a problem with Packet: {data.GetType().Name}; Table: {table}\n{e}");
+                throw new Exception($"[NoSql][{_appName}] There is a problem with Packet: {data.GetType().Name}; Table: {table}", e);
             }
 
             return new ValueTask();
