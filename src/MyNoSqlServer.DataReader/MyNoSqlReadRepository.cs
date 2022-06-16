@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MyNoSqlServer.Abstractions;
 using Newtonsoft.Json;
@@ -18,12 +19,21 @@ namespace MyNoSqlServer.DataReader
             new SortedDictionary<string, DataReaderPartition<T>>();
 
         private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        
+        private readonly List<Action<IReadOnlyList<T>>> _changedActions = new List<Action<IReadOnlyList<T>>>();
+        private readonly List<Action<IReadOnlyList<T>>> _deletedActions = new List<Action<IReadOnlyList<T>>>();
+
+        private readonly object _notifyGate = new object();
+        private Dictionary<string, T> _changed = new Dictionary<string, T>();
+        private Dictionary<string, T> _deleted = new Dictionary<string, T>();
+        private Task _notificationTask;
 
         public MyNoSqlReadRepository(IMyNoSqlSubscriber subscriber, string tableName)
         {
             _tableName = tableName;
             tableName = tableName.ToLower();
             subscriber.Subscribe<T>(tableName, Init, InitPartition, Update, Delete);
+            _notificationTask = ExecuteNotificationsRunner();
         }
         
         public MyNoSqlReadRepository(IMyNoSqlSubscriber subscriber, string tableName, ILogger<MyNoSqlReadRepository<T>> logger)
@@ -419,9 +429,6 @@ namespace MyNoSqlServer.DataReader
             }
         }
 
-
-        private readonly List<Action<IReadOnlyList<T>>> _changedActions = new List<Action<IReadOnlyList<T>>>();
-
         public IMyNoSqlServerDataReader<T> SubscribeToUpdateEvents(Action<IReadOnlyList<T>> updateSubscriber, Action<IReadOnlyList<T>> deleteSubscriber)
         {
             _changedActions.Add(updateSubscriber);
@@ -448,16 +455,16 @@ namespace MyNoSqlServer.DataReader
             if (items.Count == 0)
                 return;
 
-            
 
-            foreach (var changedAction in _changedActions)
-                changedAction(items);
-            
-
+            lock (_notifyGate)
+            {
+                foreach (var item in items)
+                {
+                    _changed[$"{item.PartitionKey}||{item.RowKey}"] = item;
+                }
+                
+            }
         }
-
-
-        private readonly List<Action<IReadOnlyList<T>>> _deletedActions = new List<Action<IReadOnlyList<T>>>();
 
 
 
@@ -470,11 +477,81 @@ namespace MyNoSqlServer.DataReader
 
             if (items.Count == 0)
                 return;
+            
+            lock (_notifyGate)
+            {
+                foreach (var item in items)
+                {
+                    _deleted[$"{item.PartitionKey}||{item.RowKey}"] = item;
+                }
+                
+            }
 
-            foreach (var changedAction in _deletedActions)
-                changedAction(items);
+            
+        }
+        
+        private void ExecuteNotifications()
+        {
+            List<T> changed = null;
+            List<T> deleted = null;
+            
+            lock (_notifyGate)
+            {
+                if (_changed.Any())
+                {
+                    changed = _changed.Values.ToList();
+                    _changed = new Dictionary<string, T>(_changed.Count);
+                }
+                
+                if (_deleted.Any())
+                {
+                    deleted = _deleted.Values.ToList();
+                    _deleted = new Dictionary<string, T>(_deleted.Count);
+                }
+            }
+            
+            if (changed != null)
+            {
+                foreach (var changedAction in _changedActions)
+                    changedAction(changed);
+            }
+            
+            if (deleted != null)
+            {
+                foreach (var deletedAction in _deletedActions)
+                    deletedAction(deleted);
+            }
+        }
+
+        private async Task ExecuteNotificationsRunner()
+        {
+            try
+            {
+                await Task.Delay(100);
+                while (true)
+                {
+                    try
+                    {
+                        ExecuteNotifications();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex,
+                            $"[NoSql][{_tableName}] Cannot handle execute notification for subscribers");
+                        Console.WriteLine(
+                            $"[NoSql][{_tableName}] Cannot handle execute notification for subscribers\n{ex}");
+                    }
+
+                    await Task.Delay(100);
+                }
+            }
+            catch (Exception)
+            {
+            }
         }
     }
+    
+    
 
 
     public static class MyNoSqlReadRepositoryExtensions
