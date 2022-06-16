@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using MyNoSqlServer.TcpContracts;
 using MyTcpSockets;
@@ -70,32 +71,56 @@ namespace MyNoSqlServer.DataReader
             var table = "--unknown--";
             try
             {
+                Stopwatch sw;
                 switch (data)
                 {
                     case InitTableContract initTableContract:
                         table = initTableContract.TableName;
                         Console.WriteLine($"[NoSql][{_appName}] receive Init packet. table: {initTableContract.TableName}  size: {initTableContract.Data.Length}");
+                        sw = Stopwatch.StartNew();
                         _subscriber.HandleInitTableEvent(initTableContract.TableName, initTableContract.Data);
+                        sw.Stop();
+                        if (sw.ElapsedMilliseconds > 2000)
+                        {
+                            Console.WriteLine($"[NoSql][{_appName}][Warning] LONG Init PACKET HANDLE {sw.ElapsedMilliseconds} ms; table: {initTableContract.TableName}");
+                        }
                         break;
 
                     case InitPartitionContract initPartitionContract:
                         table = initPartitionContract.TableName;
                         Console.WriteLine($"[NoSql][{_appName}] receive InitPartition packet. table: {initPartitionContract.TableName}  size: {initPartitionContract.Data.Length}");
+                        sw = Stopwatch.StartNew();
                         _subscriber.HandleInitPartitionEvent(initPartitionContract.TableName,
                             initPartitionContract.PartitionKey,
                             initPartitionContract.Data);
+                        sw.Stop();
+                        if (sw.ElapsedMilliseconds > 2000)
+                        {
+                            Console.WriteLine($"[NoSql][{_appName}][Warning] LONG InitPartition PACKET HANDLE  {sw.ElapsedMilliseconds} ms; table: {initPartitionContract.TableName}");
+                        }
                         break;
 
                     case UpdateRowsContract updateRowsContract:
                         table = updateRowsContract.TableName;
+                        sw = Stopwatch.StartNew();
                         _subscriber.HandleUpdateRowEvent(updateRowsContract.TableName, updateRowsContract.Data);
+                        sw.Stop();
+                        if (sw.ElapsedMilliseconds > 2000)
+                        {
+                            Console.WriteLine($"[NoSql][{_appName}][Warning] LONG UpdateRows PACKET HANDLE {sw.ElapsedMilliseconds} ms; table: {updateRowsContract.TableName}");
+                        }
                         break;
 
                     case DeleteRowsContract deleteRowsContract:
                         table = deleteRowsContract.TableName;
+                        sw = Stopwatch.StartNew();
                         _subscriber.HandleDeleteRowEvent(deleteRowsContract.TableName, deleteRowsContract.RowsToDelete);
+                        sw.Stop();
+                        if (sw.ElapsedMilliseconds > 2000)
+                        {
+                            Console.WriteLine($"[NoSql][{_appName}][Warning] LONG DeleteRows PACKET HANDLE {sw.ElapsedMilliseconds} ms; table: {deleteRowsContract.TableName}");
+                        }
                         break;
-
                 }
             }
             catch (Exception e)
