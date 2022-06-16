@@ -74,11 +74,13 @@ namespace MyNoSqlServer.DataReader
                 {
                     case InitTableContract initTableContract:
                         table = initTableContract.TableName;
+                        Console.WriteLine($"[NoSql] receive Init packet. table: {initTableContract.TableName}  size: {initTableContract.Data.Length}");
                         _subscriber.HandleInitTableEvent(initTableContract.TableName, initTableContract.Data);
                         break;
 
                     case InitPartitionContract initPartitionContract:
                         table = initPartitionContract.TableName;
+                        Console.WriteLine($"[NoSql] receive InitPartition packet. table: {initPartitionContract.TableName}  size: {initPartitionContract.Data.Length}");
                         _subscriber.HandleInitPartitionEvent(initPartitionContract.TableName,
                             initPartitionContract.PartitionKey,
                             initPartitionContract.Data);
