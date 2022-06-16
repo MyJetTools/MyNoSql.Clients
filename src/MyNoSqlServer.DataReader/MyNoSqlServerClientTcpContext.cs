@@ -67,27 +67,30 @@ namespace MyNoSqlServer.DataReader
 
         protected override ValueTask HandleIncomingDataAsync(IMyNoSqlTcpContract data)
         {
-
+            var table = "--unknown--";
             try
             {
                 switch (data)
                 {
-
                     case InitTableContract initTableContract:
+                        table = initTableContract.TableName;
                         _subscriber.HandleInitTableEvent(initTableContract.TableName, initTableContract.Data);
                         break;
 
                     case InitPartitionContract initPartitionContract:
+                        table = initPartitionContract.TableName;
                         _subscriber.HandleInitPartitionEvent(initPartitionContract.TableName,
                             initPartitionContract.PartitionKey,
                             initPartitionContract.Data);
                         break;
 
                     case UpdateRowsContract updateRowsContract:
+                        table = updateRowsContract.TableName;
                         _subscriber.HandleUpdateRowEvent(updateRowsContract.TableName, updateRowsContract.Data);
                         break;
 
                     case DeleteRowsContract deleteRowsContract:
+                        table = deleteRowsContract.TableName;
                         _subscriber.HandleDeleteRowEvent(deleteRowsContract.TableName, deleteRowsContract.RowsToDelete);
                         break;
 
@@ -95,9 +98,8 @@ namespace MyNoSqlServer.DataReader
             }
             catch (Exception e)
             {
-                Console.WriteLine("There is a problem with Packet: " + data.GetType());
-                Console.WriteLine(e);
-                throw;
+                Console.WriteLine($"There is a problem with Packet: {data.GetType().Name}; Table: {table}\n{e}");
+                throw new Exception($"There is a problem with Packet: {data.GetType().Name}; Table: {table}", e);
             }
 
             return new ValueTask();
