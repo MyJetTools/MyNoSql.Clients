@@ -15,13 +15,13 @@ namespace MyNoSqlServer.Abstractions
         private static readonly Dictionary<DataSynchronizationPeriod, string> PeriodAsString =
             new Dictionary<DataSynchronizationPeriod, string>
             {
-                [DataSynchronizationPeriod.Immediately] = "i",
-                [DataSynchronizationPeriod.Sec1] = "1",
-                [DataSynchronizationPeriod.Sec5] = "5",
-                [DataSynchronizationPeriod.Sec15] = "15",
-                [DataSynchronizationPeriod.Sec30] = "30",
-                [DataSynchronizationPeriod.Min1] = "60",
-                [DataSynchronizationPeriod.Asap] = "a",
+                [DataSynchronizationPeriod.Immediately] = "Immediately",
+                [DataSynchronizationPeriod.Sec1] = "Sec1",
+                [DataSynchronizationPeriod.Sec5] = "Sec5",
+                [DataSynchronizationPeriod.Sec15] = "Sec15",
+                [DataSynchronizationPeriod.Sec30] = "Sec30",
+                [DataSynchronizationPeriod.Min1] = "Min1",
+                [DataSynchronizationPeriod.Asap] = "Asap",
             };
 
         
