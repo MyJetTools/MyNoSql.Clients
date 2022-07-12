@@ -22,7 +22,7 @@ namespace MyNoSqlServer.Abstractions
                 [DataSynchronizationPeriod.Sec30] = "Sec30",
                 [DataSynchronizationPeriod.Min1] = "Min1",
                 [DataSynchronizationPeriod.Asap] = "Asap",
-                [DataSynchronizationPeriod.Default] = "Sec5",
+                [DataSynchronizationPeriod.Default] = "Default",
             };
 
         
