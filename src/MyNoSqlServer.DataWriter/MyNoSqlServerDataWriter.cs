@@ -24,6 +24,9 @@ namespace MyNoSqlServer.DataWriter
         public MyNoSqlServerDataWriter(Func<string> getUrl, string tableName, bool persist,
             DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
         {
+            if (dataSynchronizationPeriod == DataSynchronizationPeriod.Default)
+                dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5;
+            
             GetUrl = getUrl;
             _persist = persist;
             _dataSynchronizationPeriod = dataSynchronizationPeriod;
@@ -87,10 +90,13 @@ namespace MyNoSqlServer.DataWriter
         }
 
         public async ValueTask BulkInsertOrReplaceAsync(IReadOnlyList<T> entities,
-            DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
+            DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Default)
         {
             if(!entities.Any())
                 return;
+
+            if (dataSynchronizationPeriod == DataSynchronizationPeriod.Default)
+                dataSynchronizationPeriod = _dataSynchronizationPeriod;
 
             foreach (var entity in entities) 
                 entity.Validate();
@@ -107,8 +113,11 @@ namespace MyNoSqlServer.DataWriter
 
 
         public async ValueTask CleanAndBulkInsertAsync(IReadOnlyList<T> entities,
-            DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
+            DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Default)
         {
+            if (dataSynchronizationPeriod == DataSynchronizationPeriod.Default)
+                dataSynchronizationPeriod = _dataSynchronizationPeriod;
+            
             foreach (var entity in entities) 
                 entity.Validate();
             
@@ -123,8 +132,11 @@ namespace MyNoSqlServer.DataWriter
         }
 
         public async ValueTask CleanAndBulkInsertAsync(string partitionKey, IReadOnlyList<T> entities,
-            DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
+            DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Default)
         {
+            if (dataSynchronizationPeriod == DataSynchronizationPeriod.Default)
+                dataSynchronizationPeriod = _dataSynchronizationPeriod;
+            
             foreach (var entity in entities) 
                 entity.Validate();
             
@@ -178,14 +190,20 @@ namespace MyNoSqlServer.DataWriter
         }
 
         public ValueTask<OperationResult> ReplaceAsync(string partitionKey, string rowKey,
-            Func<T, bool> updateCallback, DataSynchronizationPeriod syncPeriod = DataSynchronizationPeriod.Sec5)
+            Func<T, bool> updateCallback, DataSynchronizationPeriod syncPeriod = DataSynchronizationPeriod.Default)
         {
+            if (syncPeriod == DataSynchronizationPeriod.Default)
+                syncPeriod = _dataSynchronizationPeriod;
+            
             return ExecuteUpdateProcessAsync(partitionKey, rowKey, "Replace", updateCallback, syncPeriod);
         }
 
         public ValueTask<OperationResult> MergeAsync(string partitionKey, string rowKey,
-            Func<T, bool> updateCallback, DataSynchronizationPeriod syncPeriod = DataSynchronizationPeriod.Sec5)
+            Func<T, bool> updateCallback, DataSynchronizationPeriod syncPeriod = DataSynchronizationPeriod.Default)
         {
+            if (syncPeriod == DataSynchronizationPeriod.Default)
+                syncPeriod = _dataSynchronizationPeriod;
+            
             return ExecuteUpdateProcessAsync(partitionKey, rowKey, "Merge", updateCallback, syncPeriod);
         }
 

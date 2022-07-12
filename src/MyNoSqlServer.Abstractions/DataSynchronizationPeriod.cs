@@ -5,7 +5,7 @@ namespace MyNoSqlServer.Abstractions
 {
     public enum DataSynchronizationPeriod
     {
-        Immediately, Sec1, Sec5, Sec15, Sec30, Min1, Asap
+        Immediately, Sec1, Sec5, Sec15, Sec30, Min1, Asap, Default
     }
 
 
@@ -22,6 +22,7 @@ namespace MyNoSqlServer.Abstractions
                 [DataSynchronizationPeriod.Sec30] = "Sec30",
                 [DataSynchronizationPeriod.Min1] = "Min1",
                 [DataSynchronizationPeriod.Asap] = "Asap",
+                [DataSynchronizationPeriod.Default] = "Sec5",
             };
 
         
