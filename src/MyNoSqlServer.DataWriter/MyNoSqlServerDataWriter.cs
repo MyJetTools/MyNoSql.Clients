@@ -74,21 +74,6 @@ namespace MyNoSqlServer.DataWriter
             }, "InsertOrReplace");
         }
 
-        public async ValueTask CleanAndKeepLastRecordsAsync(string partitionKey, int amount)
-        {
-            await MakeCall(async () =>
-            {
-                await GetUrl()
-                    .AppendPathSegments("CleanAndKeepLastRecords")
-                    .WithTableNameAsQueryParam(TableName)
-                    .WithPartitionKeyAsQueryParam(partitionKey)
-                    .SetQueryParam("amount", amount)
-                    .AppendDataSyncPeriod(_dataSynchronizationPeriod)
-                    .AllowNonOkCodes()
-                    .DeleteAsync();
-            }, "CleanAndKeepLastRecords");
-        }
-
         public async ValueTask BulkInsertOrReplaceAsync(IReadOnlyList<T> entities,
             DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Default)
         {
@@ -386,6 +371,11 @@ namespace MyNoSqlServer.DataWriter
 
                 return new ValueTask(result);
             }, "CleanAndKeepMaxRecords");
+        }
+        
+        public ValueTask CleanAndKeepLastRecordsAsync(string partitionKey, int amount)
+        {
+            return CleanAndKeepMaxRecords(partitionKey, amount);
         }
 
         public async ValueTask<int> GetCountAsync(string partitionKey)
