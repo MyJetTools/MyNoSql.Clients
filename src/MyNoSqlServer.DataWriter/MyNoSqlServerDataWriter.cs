@@ -434,9 +434,11 @@ namespace MyNoSqlServer.DataWriter
             }
             catch (FlurlHttpException e)
             {
-                Console.WriteLine($"Message: {e.Message}, Response: {e.GetResponseStringAsync()}");
+                var resp = await e.GetResponseStringAsync();
+                
+                Console.WriteLine($"Message: {e.Message}, Response: {resp}");
                 throw new MyNoSqlHttpException(
-                    $"Failed to call {methodName} method. Response: {e.GetResponseStringAsync()}", e);
+                    $"Failed to call {methodName} method. Response: {resp}", e);
             }
         }
 
