@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Flurl;
 using Flurl.Http;
 using MyNoSqlServer.Abstractions;
 using MyNoSqlServer.DataWriter.Builders;
 using MyNoSqlServer.DataWriter.Exceptions;
+using Newtonsoft.Json;
 
 namespace MyNoSqlServer.DataWriter
 {
@@ -20,6 +24,7 @@ namespace MyNoSqlServer.DataWriter
         private readonly bool _persist;
         private readonly DataSynchronizationPeriod _dataSynchronizationPeriod;
         internal readonly string TableName;
+        private readonly HttpClient _client = new();
 
         public MyNoSqlServerDataWriter(Func<string> getUrl, string tableName, bool persist,
             DataSynchronizationPeriod dataSynchronizationPeriod = DataSynchronizationPeriod.Sec5)
@@ -63,15 +68,45 @@ namespace MyNoSqlServer.DataWriter
         public async ValueTask InsertOrReplaceAsync(T entity)
         {
             entity.Validate();
-
-            await MakeCall(async () =>
+            
+            var url = GetUrl().AppendPathSegments(RowController, "InsertOrReplace")
+                .SetQueryParam("tableName", TableName)
+                .SetQueryParam("syncPeriod", _dataSynchronizationPeriod.AsString(null));
+            
+            try
             {
-                await GetUrl()
-                    .AppendPathSegments(RowController, "InsertOrReplace")
-                    .WithTableNameAsQueryParam(TableName)
-                    .AppendDataSyncPeriod(_dataSynchronizationPeriod)
-                    .PostJsonAsync(entity);
-            }, "InsertOrReplace");
+                var requestContent = JsonConvert.SerializeObject(entity);
+                
+                var resp = await _client.PostAsync(url, 
+                    new StringContent(requestContent, Encoding.UTF8, "application/json"));
+
+                if (resp.StatusCode != HttpStatusCode.OK && resp.StatusCode != HttpStatusCode.Accepted
+                                                         && resp.StatusCode != HttpStatusCode.Created
+                                                         && resp.StatusCode != HttpStatusCode.NoContent)
+                {
+                    string responseContent = await resp.Content.ReadAsStringAsync();
+                    
+                    Console.WriteLine($"Message: cannot call {url}. Status: {resp.StatusCode}; Request: {requestContent}; Response: {responseContent}");
+                    throw new Exception(
+                        $"Status code: {resp.StatusCode}");
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Message: cannot call {url}. Exception: {ex}");
+                throw new MyNoSqlHttpException(
+                    $"Message: cannot call {url}. Exception: {ex.Message}", ex);
+            }
+                
+
+            // await MakeCall(async () =>
+            // {
+            //     await GetUrl()
+            //         .AppendPathSegments(RowController, "InsertOrReplace")
+            //         .WithTableNameAsQueryParam(TableName)
+            //         .AppendDataSyncPeriod(_dataSynchronizationPeriod)
+            //         .PostJsonAsync(entity);
+            // }, "InsertOrReplace");
         }
 
         public async ValueTask BulkInsertOrReplaceAsync(IReadOnlyList<T> entities,
