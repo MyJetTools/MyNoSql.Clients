@@ -8,6 +8,8 @@ namespace MyNoSqlServer.DataReader
 {
     public class MyNoSqlServerClientTcpContext : ClientTcpContext<IMyNoSqlTcpContract>
     {
+        public static event Action<string, long> OnReceiveDataReport;
+        
         private readonly MyNoSqlSubscriber _subscriber;
         private readonly string _appName;
 
@@ -71,12 +73,23 @@ namespace MyNoSqlServer.DataReader
             var table = "--unknown--";
             try
             {
+                var receiveReport = OnReceiveDataReport;
+                
                 Stopwatch sw;
                 switch (data)
                 {
                     case InitTableContract initTableContract:
                         table = initTableContract.TableName;
                         Console.WriteLine($"[NoSql][{_appName}] receive Init packet. table: {initTableContract.TableName}  size: {initTableContract.Data.Length}");
+                        
+                        try
+                        {
+                            if (receiveReport != null)
+                                receiveReport.Invoke(initTableContract.TableName, initTableContract.Data.Length);
+                        }
+                        catch (Exception)
+                        { }
+                        
                         sw = Stopwatch.StartNew();
                         _subscriber.HandleInitTableEvent(initTableContract.TableName, initTableContract.Data);
                         sw.Stop();
@@ -90,6 +103,15 @@ namespace MyNoSqlServer.DataReader
                         table = initPartitionContract.TableName;
                         Console.WriteLine($"[NoSql][{_appName}] receive InitPartition packet. table: {initPartitionContract.TableName}  size: {initPartitionContract.Data.Length}");
                         sw = Stopwatch.StartNew();
+
+                        try
+                        {
+                            if (receiveReport != null)
+                                receiveReport.Invoke(initPartitionContract.TableName, initPartitionContract.Data.Length);
+                        }
+                        catch (Exception)
+                        { }
+
                         _subscriber.HandleInitPartitionEvent(initPartitionContract.TableName,
                             initPartitionContract.PartitionKey,
                             initPartitionContract.Data);
@@ -102,6 +124,15 @@ namespace MyNoSqlServer.DataReader
 
                     case UpdateRowsContract updateRowsContract:
                         table = updateRowsContract.TableName;
+
+                        try
+                        {
+                            if (receiveReport != null)
+                                receiveReport.Invoke(updateRowsContract.TableName, updateRowsContract.Data.Length);
+                        }
+                        catch (Exception)
+                        { }
+
                         sw = Stopwatch.StartNew();
                         _subscriber.HandleUpdateRowEvent(updateRowsContract.TableName, updateRowsContract.Data);
                         sw.Stop();
@@ -113,6 +144,7 @@ namespace MyNoSqlServer.DataReader
 
                     case DeleteRowsContract deleteRowsContract:
                         table = deleteRowsContract.TableName;
+                        
                         sw = Stopwatch.StartNew();
                         _subscriber.HandleDeleteRowEvent(deleteRowsContract.TableName, deleteRowsContract.RowsToDelete);
                         sw.Stop();
