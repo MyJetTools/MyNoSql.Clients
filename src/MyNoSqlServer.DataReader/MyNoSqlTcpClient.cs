@@ -7,11 +7,15 @@ namespace MyNoSqlServer.DataReader
 {
     public class MyNoSqlTcpClient : MyNoSqlSubscriber
     {
+        private readonly Func<string> _getHostPort;
+        private readonly string _appName;
         private ILogger _logger;
-        private readonly MyClientTcpSocket<IMyNoSqlTcpContract> _tcpClient;
+        private MyClientTcpSocket<IMyNoSqlTcpContract> _tcpClient;
         
         public MyNoSqlTcpClient(Func<string> getHostPort, string appName)
         {
+            _getHostPort = getHostPort;
+            _appName = appName;
             _tcpClient = new MyClientTcpSocket<IMyNoSqlTcpContract>(getHostPort, TimeSpan.FromSeconds(3));
 
             _tcpClient
@@ -72,6 +76,23 @@ namespace MyNoSqlServer.DataReader
         public void Stop()
         {
             _tcpClient.Stop();
+        }
+
+        public void ReCreateAndStart()
+        {
+            _tcpClient?.Stop();
+            
+            _tcpClient =  new MyClientTcpSocket<IMyNoSqlTcpContract>(_getHostPort, TimeSpan.FromSeconds(3));
+
+            _tcpClient
+                .RegisterTcpContextFactory(() => new MyNoSqlServerClientTcpContext(this, _appName))
+                .Logs.AddLogInfo((c, m) => Console.WriteLine("MyNoSql: " + m))
+                .Logs.AddLogException((c, m) => Console.WriteLine("MyNoSql: " + m))
+                .RegisterTcpSerializerFactory(() => new MyNoSqlTcpSerializer());
+            
+            _tcpClient.Start();
+            
+            _logger?.LogError($"=== NOSQL ARE RESTARTED!!! ===");
         }
     }
 }
