@@ -8,6 +8,9 @@ namespace MyNoSqlServer.DataReader
 {
     public class MyNoSqlServerClientTcpContext : ClientTcpContext<IMyNoSqlTcpContract>
     {
+        public static bool LogInitPartitionToConsole { get; set; } = true;
+        public static bool LogInitToConsole { get; set; } = true;
+        
         public static event Action<string, long> OnReceiveDataReport;
         
         private readonly MyNoSqlSubscriber _subscriber;
@@ -80,7 +83,8 @@ namespace MyNoSqlServer.DataReader
                 {
                     case InitTableContract initTableContract:
                         table = initTableContract.TableName;
-                        Console.WriteLine($"[NoSql][{_appName}] receive Init packet. table: {initTableContract.TableName}  size: {initTableContract.Data.Length}");
+                        if (LogInitToConsole)
+                            Console.WriteLine($"[NoSql][{_appName}] receive Init packet. table: {initTableContract.TableName}  size: {initTableContract.Data.Length}");
                         
                         try
                         {
@@ -101,7 +105,10 @@ namespace MyNoSqlServer.DataReader
 
                     case InitPartitionContract initPartitionContract:
                         table = initPartitionContract.TableName;
-                        Console.WriteLine($"[NoSql][{_appName}] receive InitPartition packet. table: {initPartitionContract.TableName}  size: {initPartitionContract.Data.Length}");
+                        
+                        if (LogInitPartitionToConsole)
+                            Console.WriteLine($"[NoSql][{_appName}] receive InitPartition packet. table: {initPartitionContract.TableName}  size: {initPartitionContract.Data.Length}");
+                        
                         sw = Stopwatch.StartNew();
 
                         try
